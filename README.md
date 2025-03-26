@@ -17,6 +17,10 @@ You could use this template to start/containerize a development environment for 
         PROJECT_NAME: "my-project" # Name you project and  init for you
         UBUNTU_VERSION: "22.04"    # Choose ubuntu version
         PYTHON_VERSION: "3.10"     # Choose python version
+    develop:
+      watch:
+        - action: sync
+          path: ./my-project       # Don't forget to modify the default folder name to your project name here!
     ```
 
 2. Start the development environment:

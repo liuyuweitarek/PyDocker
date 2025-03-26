@@ -8,21 +8,17 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      #############################
-      # Set your project env here #
-      #############################
       args:
-        UBUNTU_VERSION: "22.04"
-        PYTHON_VERSION: "3.10"
-        PROJECT_NAME: "my-project"
-      #############################
+        UBUNTU_VERSION: "22.04"          # EDIT UBUNTU_VERSION HERE !!!
+        PYTHON_VERSION: "3.10"           # EDIT PYTHON_VERSION HERE !!!
+        PROJECT_NAME: "my-project"       # EDIT PROJECT_NAME HERE !!!
     volumes:
       - .:/code
     # Sync project with local and rebuild when pyproject.toml changes
     develop:
       watch:
         - action: sync
-          path: ./my-project
+          path: ./my-project             # EDIT PROJECT_NAME HERE !!!
           target: /code
           ignore:
             - .venv/
