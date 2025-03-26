@@ -1,64 +1,45 @@
-ARG PROJECT_NAME \
-    UBUNTU_VERSION \
+ARG UBUNTU_VERSION \
     PYTHON_VERSION \
-    POETRY_VERSION
+    PROJECT_NAME
 
 FROM ubuntu:${UBUNTU_VERSION}
 
-ARG PROJECT_NAME=${PROJECT_NAME} \
+ARG UBUNTU_VERSION \
+    PYTHON_VERSION \
+    PROJECT_NAME
+
+ENV DEBIAN_FRONTEND=noninteractive \
     UBUNTU_VERSION=${UBUNTU_VERSION} \
     PYTHON_VERSION=${PYTHON_VERSION} \
-    POETRY_VERSION=${POETRY_VERSION}
-
-ENV ROOT_DIR=/code \
-  PROJECT_DIR=${PROJECT_NAME} \
-  DEBIAN_FRONTEND=noninteractive \ 
-  # Python configuration:
-  PYTHON_VERSION=${PYTHON_VERSION} \
-  PYTHONFAULTHANDLER=1 \
-  PYTHONUNBUFFERED=1 \ 
-  PYTHONDONTWRITEBYTECODE=1 \
-  # Poetry's configuration:
-  POETRY_VERSION=${POETRY_VERSION} \
-  POETRY_HOME=/opt/poetry \
-  POETRY_CACHE_DIR=/tmp/poetry_cache \
-  POETRY_REQUESTS_TIMEOUT=3000 \
-  POETRY_NO_INTERACTION=1 \
-  POETRY_VIRTUALENVS_PREFER_ACTIVE_PYTHON=1 \
-  POETRY_VIRTUALENVS_CREATE=0 \
-  # NVIDIA configuration:
-  NVIDIA_DRIVER_CAPABILITIES=${NVIDIA_DRIVER_CAPABILITIES:-compute,utility}
+    PROJECT_NAME=${PROJECT_NAME}\
+    # UV Configuration
+    UV_LINK_MODE=copy \
+    UV_COMPILE_BYTECODE=0 \
+    UV_PYTHON_DOWNLOADS=never \
+    UV_PYTHON=python${PYTHON_VERSION}
 
 RUN apt-get update \
-  && apt install --no-install-recommends -y curl wget build-essential gpg-agent software-properties-common \
-  && add-apt-repository ppa:deadsnakes/ppa \
-  && apt install -y python${PYTHON_VERSION}-venv python-is-python3 python3-pip \
-  && ln -sf /usr/bin/python${PYTHON_VERSION} /usr/bin/python \
-  && ln -sf /usr/bin/python${PYTHON_VERSION} /usr/bin/python3 \
-  && curl -sSL https://install.python-poetry.org | python \
-  && apt clean \
-  && rm -rf /var/lib/apt/lists/*
+    && apt install --no-install-recommends -y curl wget build-essential gpg-agent software-properties-common python-pkg-resources\
+    && curl -LsSf https://astral.sh/uv/install.sh | sh \
+    && apt clean \
+    && rm -rf /var/lib/apt/lists/*
 
-ENV PATH=${POETRY_HOME}/bin:$PATH \
-  PYTHONPATH=/usr/lib/python${PYTHON_VERSION}/site-packages:${PYTHONPATH}
+ENV PATH=/root/.local/bin/:$PATH
 
 WORKDIR /code
 
-
-# COPY entrypoint.sh entrypoint.sh
 RUN printf '#!/bin/bash\n\
-if [ ! -d $PROJECT_DIR ]; then\n\
-    poetry new $PROJECT_DIR;\n\
+if [ ! -d $PROJECT_NAME ]; then\n\
+    uv init $PROJECT_NAME --python=$PYTHON_VERSION;\n\
 fi\n\
 \n\
-cd $PROJECT_DIR;\n\
+cd $PROJECT_NAME;\n\
 \n\
-if [ -f "pyproject.toml" ]; then\n\
-    poetry install;\n\
+if [ ! -d $PROJECT_NAME/.venv ]; then\n\
+    uv sync --locked --no-install-project;\n\  
 fi\n\
 \n\
 exec "$@"\n' > /usr/local/bin/entrypoint.sh \
   && chmod +x /usr/local/bin/entrypoint.sh
 
-# Ensure entrypoint is set in the same layer to reference the script
-ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+ENTRYPOINT [ "/usr/local/bin/entrypoint.sh" ]
